@@ -209,7 +209,7 @@ class RobotEnv(Env):
             debug: bool = False):
 
         self.env_config = env_config
-        map_def = env_config.map_pool.map_defs[0] # info: only use first map
+        map_def = env_config.map_pool.get_map_by_name("uni_campus_big.json") # info: only use thoroughly tested map
         self.action_space, self.observation_space, orig_obs_space = init_spaces(env_config, map_def)
 
         self.reward_func, self.debug = reward_func, debug
