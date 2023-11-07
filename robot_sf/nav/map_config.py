@@ -87,6 +87,7 @@ class MapDefinition:
     ped_routes: List[GlobalRoute]
     obstacles_pysf: List[Line2D] = field(init=False)
     robot_routes_by_spawn_id: Dict[int, List[GlobalRoute]] = field(init=False)
+    name: str = field(default=None)
 
     def __post_init__(self):
         obstacle_lines = [line for o in self.obstacles for line in o.lines]
@@ -132,17 +133,26 @@ class MapDefinitionPool:
             def load_json(path: str) -> dict:
                 with open(path, 'r', encoding='utf-8') as file:
                     return json.load(file)
-            map_files = [os.path.join(self.maps_folder, f) for f in os.listdir(self.maps_folder)]
-            self.map_defs = [serialize_map(load_json(f)) for f in map_files]
+            map_files = [f for f in os.listdir(self.maps_folder) if f.endswith('.json')]
+            self.map_defs = [serialize_map(load_json(os.path.join(self.maps_folder, f)), f) for f in map_files]
 
         if not self.map_defs:
             raise ValueError('Map pool is empty! Please specify some maps!')
 
     def choose_random_map(self) -> MapDefinition:
         return random.choice(self.map_defs)
+    
+    def list_map_names(self) -> List[str]:
+        return [map_def.name for map_def in self.map_defs]
+    
+    def get_map_by_name(self, map_name: str) -> Union[MapDefinition, None]:
+        for map_def in self.map_defs:
+            if map_def.name == map_name:
+                return map_def
+        raise ValueError(f"Map with name '{map_name}' not found! Try `list_map_names()` to see all available maps.")
 
 
-def serialize_map(map_structure: dict) -> MapDefinition:
+def serialize_map(map_structure: dict, map_name:str) -> MapDefinition:
     (min_x, max_x), (min_y, max_y) = map_structure['x_margin'], map_structure['y_margin']
     width, height = max_x - min_x, max_y - min_y
 
@@ -182,8 +192,11 @@ def serialize_map(map_structure: dict) -> MapDefinition:
         (0, width, height, height), # top
         (0, 0, 0, height),          # left
         (width, width, 0, height)]  # right
+    
+    name = map_name
 
     return MapDefinition(
         width, height, obstacles, robot_spawn_zones,
         ped_spawn_zones, robot_goal_zones, map_bounds, robot_routes,
-        ped_goal_zones, ped_crowded_zones, ped_routes)
+        ped_goal_zones, ped_crowded_zones, ped_routes,
+        name)
